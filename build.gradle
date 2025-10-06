@@ -60,6 +60,7 @@ dependencies {
 }
 
 tasks.named('test') {
+
     useJUnitPlatform()
 
     testLogging {
@@ -67,18 +68,50 @@ tasks.named('test') {
         exceptionFormat "full"
         showStandardStreams = false
     }
+
+    // Ensure test resources directory exists before running tests
+    doFirst {
+        file("${layout.buildDirectory.get()}/resources/test").mkdirs()
+    }
 }
 
 // Separate task for Gauge tests
-task gaugeTest(type: JavaExec) {
+tasks.register('gaugeTest', JavaExec) {
     mainClass = 'com.thoughtworks.gauge.GaugeRuntime'
     classpath = sourceSets.test.runtimeClasspath
     args = ['specs']
+
+    // Set working directory to project root so Gauge can find env/default
+    workingDir = projectDir
+
+    // Set system properties that Gauge needs
     systemProperty 'gauge.project.root', projectDir.absolutePath
+
+    // Set environment variables that Gauge reads
+    environment 'GAUGE_PROJECT_ROOT', projectDir.absolutePath
+
+    // Explicitly point to build output directory
+    def buildOutputDir = layout.buildDirectory.get().asFile
+    systemProperty 'gauge.custom.build.path', new File(buildOutputDir, 'classes/java/test').absolutePath
+
+    // Ensure test resources directory exists before running Gauge tests
+    doFirst {
+        file("${buildOutputDir}/resources/test").mkdirs()
+
+        // Verify env/default directory exists
+        def envDir = file("env/default")
+        if (!envDir.exists()) {
+            throw new GradleException("Gauge environment directory not found: ${envDir.absolutePath}")
+        }
+
+        println "Gauge project root: ${projectDir.absolutePath}"
+        println "Build output: ${buildOutputDir.absolutePath}"
+        println "Working directory: ${workingDir}"
+    }
 }
 
 // Task to initialize Gauge project
-task gaugeInit(type: Exec) {
+tasks.register('gaugeInit', Exec) {
     commandLine 'gauge', 'init', 'java'
     workingDir projectDir
 }
