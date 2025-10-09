@@ -11,10 +11,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * Unit tests for HealthController
- * Using MockMvc for lightweight controller testing
- */
 @WebMvcTest(HealthController.class)
 @DisplayName("Health Controller Tests")
 class HealthControllerTest {
