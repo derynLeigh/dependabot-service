@@ -22,7 +22,7 @@ class DependabotApplicationTest {
  }
 ```
 Create the main application class - `src/main/java/com/dependabot/DependabotApplication.java` :
-```aiignore
+```
 package com.dependabot;
 
 import org.springframework.boot.SpringApplication;
@@ -36,4 +36,30 @@ public class DependabotApplication {
     }
 }
 ```
-Run the test again - it should pass now that it has a class to test.
+Run the test again - it should pass: `./gradlew test`
+### Step 2: Add Basic Config
+Create `src/main/resources/application.yml`:
+
+```
+server:
+  port: 8080
+
+spring:
+  application:
+    name: dependabot-service
+
+logging:
+  level:
+    root: INFO
+    com.dependabot: DEBUG
+```
+### Step 3: Verify the Application can Run
+```
+# Run the application
+./gradlew bootRun
+
+# In another terminal, test the application is running
+curl http://localhost:8081/actuator/health
+
+# Stop with Ctrl+C
+```
