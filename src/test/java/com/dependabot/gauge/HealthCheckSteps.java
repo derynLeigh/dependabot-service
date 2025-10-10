@@ -1,15 +1,20 @@
 package com.dependabot.gauge;
 
+import com.thoughtworks.gauge.BeforeScenario;
 import com.thoughtworks.gauge.Step;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.test.context.TestContextManager;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
+/**
+ * Gauge step implementations for Health Check API scenarios
+ */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         classes = com.dependabot.DependabotApplication.class
@@ -20,6 +25,22 @@ public class HealthCheckSteps {
     private int port;
 
     private Response response;
+
+    // Spring Test Context Manager for Gauge
+    private TestContextManager testContextManager;
+
+    /**
+     * Initialize Spring context before each scenario
+     * This is needed because Gauge creates the class instance, not Spring
+     */
+    @BeforeScenario
+    public void setUp() throws Exception {
+        // Initialize Spring Test Context
+        testContextManager = new TestContextManager(getClass());
+        testContextManager.prepareTestInstance(this);
+
+        System.out.println("Spring context initialized. Port: " + port);
+    }
 
     @Step("Start the application on a random port")
     public void startApplication() {

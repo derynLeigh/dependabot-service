@@ -19,6 +19,10 @@ configurations {
 
 repositories {
     mavenCentral()
+    // Gauge releases repository
+    maven {
+        url "https://repo.maven.apache.org/maven2"
+    }
     maven {
         url 'https://repo.jenkins-ci.org/releases/'
     }
@@ -34,31 +38,40 @@ dependencies {
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
     // GitHub API
-    implementation 'org.kohsuke:github-api:2.0-rc.5'
+    implementation 'org.kohsuke:github-api:1.321'
 
+    // JWT for GitHub App authentication
     implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.3'
 
+    // Caffeine Cache
     implementation 'com.github.ben-manes.caffeine:caffeine'
 
+    // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
+    // Development tools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
+    // Testing - JUnit 5
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
+    // Mockito
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.mockito:mockito-junit-jupiter'
 
+    // AssertJ for fluent assertions
     testImplementation 'org.assertj:assertj-core:3.24.2'
 
+    // REST Assured for API testing
     testImplementation 'io.rest-assured:rest-assured:5.4.0'
     testImplementation 'io.rest-assured:json-path:5.4.0'
 
+    // Gauge Framework for BDD (match version with Gauge plugin)
     testImplementation 'com.thoughtworks.gauge:gauge-java:0.13.0'
 }
 
@@ -73,19 +86,45 @@ tasks.named('test') {
 }
 
 // Separate task for Gauge tests
-task gaugeTest(type: JavaExec) {
-    mainClass = 'com.thoughtworks.gauge.GaugeRuntime'
-    classpath = sourceSets.test.runtimeClasspath
-    args = ['specs']
-    systemProperty 'gauge.project.root', projectDir.absolutePath
+tasks.register('gaugeTest', Exec) {
+    dependsOn testClasses
+
+    commandLine 'gauge', 'run', 'specs'
+    workingDir projectDir
+
+    // Set environment variables for Gauge
+    def buildDirPath = layout.buildDirectory.get().asFile
+    environment 'GAUGE_CUSTOM_COMPILE_DIR', "${buildDirPath}/classes/java/main:${buildDirPath}/classes/java/test"
+    environment 'gauge_custom_classpath', sourceSets.test.runtimeClasspath.asPath
 }
 
 // Task to initialize Gauge project
-task gaugeInit(type: Exec) {
+tasks.register('gaugeInit', Exec) {
     commandLine 'gauge', 'init', 'java'
     workingDir projectDir
 }
 
+// Run specific Gauge spec
+tasks.register('gaugeRun', Exec) {
+    dependsOn testClasses
+
+    def specPath = project.hasProperty('spec') ? project.property('spec') : 'specs'
+    commandLine 'gauge', 'run', specPath
+    workingDir projectDir
+
+    // Set environment variables for Gauge
+    def buildDirPath = layout.buildDirectory.get().asFile
+    environment 'GAUGE_CUSTOM_COMPILE_DIR', "${buildDirPath}/classes/java/main:${buildDirPath}/classes/java/test"
+    environment 'gauge_custom_classpath', sourceSets.test.runtimeClasspath.asPath
+}
+
 bootJar {
     archiveFileName = 'dependabot-service.jar'
+}
+
+// Helper task to print test classpath for Gauge
+tasks.register('printTestClasspath') {
+    doLast {
+        println sourceSets.test.runtimeClasspath.asPath
+    }
 }
