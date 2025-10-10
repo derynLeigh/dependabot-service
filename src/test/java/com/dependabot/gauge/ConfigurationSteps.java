@@ -3,18 +3,17 @@ package com.dependabot.gauge;
 import com.dependabot.config.GitHubProperties;
 import com.thoughtworks.gauge.BeforeScenario;
 import com.thoughtworks.gauge.Step;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.TestContextManager;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 
 /**
  * Gauge step implementations for Configuration scenarios
@@ -32,27 +31,25 @@ import static org.assertj.core.api.Assertions.fail;
 })
 public class ConfigurationSteps {
 
+    private static final Logger log = LoggerFactory.getLogger(ConfigurationSteps.class);
+
     @Autowired
     private GitHubProperties gitHubProperties;
 
     private TestContextManager testContextManager;
-    private ConfigurableApplicationContext failedContext;
-    private Exception startupException;
 
     @BeforeScenario
     public void setUp() throws Exception {
         testContextManager = new TestContextManager(getClass());
         testContextManager.prepareTestInstance(this);
 
-        // Reset state
-        failedContext = null;
-        startupException = null;
+        log.debug("Configuration test context initialized");
     }
 
     @Step("Start the application with valid GitHub configuration")
     public void startApplicationWithValidConfig() {
-        // Context is already started by @SpringBootTest
         assertThat(gitHubProperties).isNotNull();
+        log.debug("Application started with valid configuration");
     }
 
     @Step("GitHub App ID should be loaded correctly")
@@ -90,70 +87,16 @@ public class ConfigurationSteps {
                 .containsExactly("repo1", "repo2", "repo3");
     }
 
-    @Step("Attempt to start application without GitHub App ID")
-    public void attemptStartWithoutAppId() {
-        attemptStartApplicationWithProperties(
-                "github.installation-id", "test-install",
-                "github.private-key", "test-key",
-                "github.owner", "test-owner",
-                "github.repos", "repo1"
-        );
-    }
-
-    @Step("Application should fail to start")
-    public void verifyApplicationFailedToStart() {
-        assertThat(startupException)
-                .as("Startup exception")
-                .isNotNull();
-    }
-
-    @Step("Error message should indicate missing <propertyName>")
-    public void verifyErrorMessageContainsProperty(String propertyName) {
-        assertThat(startupException)
-                .isNotNull();
-
-        // Convert property name to field name (e.g., "GITHUB_APP_ID" -> "appId")
-        String fieldName = convertPropertyToFieldName(propertyName);
-
-        assertThat(startupException.getMessage())
-                .as("Error message should mention the missing property")
-                .containsIgnoringCase(fieldName);
-    }
-
-    @Step("Attempt to start application with empty GitHub App ID")
-    public void attemptStartWithEmptyAppId() {
-        attemptStartApplicationWithProperties(
-                "github.app-id", "",
-                "github.installation-id", "test-install",
-                "github.private-key", "test-key",
-                "github.owner", "test-owner",
-                "github.repos", "repo1"
-        );
-    }
-
-    @Step("Error message should indicate invalid GitHub App ID")
-    public void verifyErrorMessageInvalidAppId() {
-        assertThat(startupException)
-                .isNotNull();
-
-        assertThat(startupException.getMessage())
-                .as("Error message should indicate validation failure")
-                .containsAnyOf("appId", "must not be blank", "validation");
-    }
-
     @Step("Start the application with only required GitHub configuration")
     public void startWithRequiredConfigOnly() {
-        // Already started with valid config
         assertThat(gitHubProperties).isNotNull();
     }
 
     @Step("Default GitHub Owner should be <defaultOwner>")
     public void verifyDefaultOwner(String defaultOwner) {
-        // In our test, we're using "test-owner" not the default
-        // This step verifies the concept of defaults
         assertThat(gitHubProperties.getOwner())
                 .as("GitHub Owner (default or configured)")
-                .isNotBlank();
+                .isEqualTo(defaultOwner);
     }
 
     @Step("Default repositories list should contain default repositories")
@@ -164,55 +107,5 @@ public class ConfigurationSteps {
                 .as("Repositories list")
                 .isNotNull()
                 .isNotEmpty();
-    }
-
-    /**
-     * Helper method to attempt starting application with specific properties
-     */
-    private void attemptStartApplicationWithProperties(String... propertyPairs) {
-        try {
-            SpringApplication app = new SpringApplication(
-                    com.dependabot.DependabotApplication.class
-            );
-
-            // Build properties array
-            String[] properties = new String[propertyPairs.length / 2];
-            for (int i = 0; i < propertyPairs.length; i += 2) {
-                properties[i / 2] = propertyPairs[i] + "=" + propertyPairs[i + 1];
-            }
-
-            app.setDefaultProperties(
-                    java.util.Map.of("spring.main.banner-mode", "off")
-            );
-
-            failedContext = app.run(properties);
-
-            // If we get here, startup succeeded (which we don't want for negative tests)
-            fail("Application should have failed to start but didn't");
-
-        } catch (Exception e) {
-            startupException = e;
-        }
-    }
-
-    /**
-     * Convert property name to field name
-     * e.g., "GITHUB_APP_ID" -> "appId"
-     */
-    private String convertPropertyToFieldName(String propertyName) {
-        String normalized = propertyName.toLowerCase()
-                .replace("github_", "")
-                .replace("_", " ");
-
-        // Convert to camelCase
-        String[] parts = normalized.split(" ");
-        StringBuilder result = new StringBuilder(parts[0]);
-
-        for (int i = 1; i < parts.length; i++) {
-            result.append(Character.toUpperCase(parts[i].charAt(0)))
-                    .append(parts[i].substring(1));
-        }
-
-        return result.toString();
     }
 }

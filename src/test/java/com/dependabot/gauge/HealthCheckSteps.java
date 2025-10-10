@@ -4,6 +4,8 @@ import com.thoughtworks.gauge.BeforeScenario;
 import com.thoughtworks.gauge.Step;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.TestContextManager;
@@ -21,29 +23,28 @@ import static org.hamcrest.Matchers.equalTo;
 )
 public class HealthCheckSteps {
 
+    private static final Logger log = LoggerFactory.getLogger(HealthCheckSteps.class);
+
     @LocalServerPort
     private int port;
 
     private Response response;
 
-    // Spring Test Context Manager for Gauge
     private TestContextManager testContextManager;
 
-    /**
-     * Initialize Spring context before each scenario
-     * This is needed because Gauge creates the class instance, not Spring
-     */
     @BeforeScenario
     public void setUp() throws Exception {
-        // Initialize Spring Test Context
         testContextManager = new TestContextManager(getClass());
         testContextManager.prepareTestInstance(this);
+
+        log.debug("Spring context initialized. Port: {}", port);
     }
 
     @Step("Start the application on a random port")
     public void startApplication() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
+        log.debug("Application started on port: {}", port);
     }
 
     @Step("Make a GET request to <endpoint>")
@@ -56,11 +57,12 @@ public class HealthCheckSteps {
                 .log().ifValidationFails()
                 .extract()
                 .response();
+
+        log.debug("Response: {}", response.getBody().asString());
     }
 
     @Step("Make a GET request to <endpoint> without authentication")
     public void makeGetRequestWithoutAuth(String endpoint) {
-        // For now, same as regular GET since we don't have auth yet
         makeGetRequest(endpoint);
     }
 
