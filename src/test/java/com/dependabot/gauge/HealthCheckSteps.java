@@ -38,15 +38,12 @@ public class HealthCheckSteps {
         // Initialize Spring Test Context
         testContextManager = new TestContextManager(getClass());
         testContextManager.prepareTestInstance(this);
-
-        System.out.println("Spring context initialized. Port: " + port);
     }
 
     @Step("Start the application on a random port")
     public void startApplication() {
         RestAssured.baseURI = "http://localhost";
         RestAssured.port = port;
-        System.out.println("Application started on port: " + port);
     }
 
     @Step("Make a GET request to <endpoint>")
@@ -59,8 +56,6 @@ public class HealthCheckSteps {
                 .log().ifValidationFails()
                 .extract()
                 .response();
-
-        System.out.println("Response: " + response.getBody().asString());
     }
 
     @Step("Make a GET request to <endpoint> without authentication")

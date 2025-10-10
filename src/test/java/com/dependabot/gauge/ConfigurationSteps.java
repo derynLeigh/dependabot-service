@@ -47,15 +47,12 @@ public class ConfigurationSteps {
         // Reset state
         failedContext = null;
         startupException = null;
-
-        System.out.println("Configuration test context initialized");
     }
 
     @Step("Start the application with valid GitHub configuration")
     public void startApplicationWithValidConfig() {
         // Context is already started by @SpringBootTest
         assertThat(gitHubProperties).isNotNull();
-        System.out.println("Application started with valid configuration");
     }
 
     @Step("GitHub App ID should be loaded correctly")
@@ -108,9 +105,6 @@ public class ConfigurationSteps {
         assertThat(startupException)
                 .as("Startup exception")
                 .isNotNull();
-
-        System.out.println("Application correctly failed to start: " +
-                startupException.getMessage());
     }
 
     @Step("Error message should indicate missing <propertyName>")
@@ -198,8 +192,6 @@ public class ConfigurationSteps {
 
         } catch (Exception e) {
             startupException = e;
-            System.out.println("Application failed to start as expected: " +
-                    e.getClass().getSimpleName());
         }
     }
 
