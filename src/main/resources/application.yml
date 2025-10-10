@@ -1,0 +1,54 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: dependabot-service
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+# GitHub Configuration
+github:
+  app-id: ${GITHUB_APP_ID}
+  installation-id: ${GITHUB_INSTALLATION_ID}
+  private-key: ${GITHUB_PRIVATE_KEY}
+  owner: ${GITHUB_OWNER:derynLeigh}
+  repos: ${GITHUB_REPOS:techronymsService,techronyms-user-service,dependabot-pr-summariser}
+
+# Cache Configuration
+cache:
+  ttl-ms: ${CACHE_TTL_MS:300000} # 5 minutes default
+
+# Scheduler Configuration
+scheduler:
+  enabled: ${ENABLE_SCHEDULER:false}
+  cron: ${CRON_SCHEDULE:0 7 * * *} # 7 AM daily
+  max-retries: ${MAX_RETRIES:3}
+  retry-delay-ms: ${RETRY_DELAY:5000}
+
+# CORS Configuration
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.dependabot: DEBUG
+    org.kohsuke.github: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Actuator endpoints (optional, for production monitoring)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized

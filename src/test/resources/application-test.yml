@@ -1,0 +1,6 @@
+github:
+  app-id: test-app-id
+  installation-id: test-installation-id
+  private-key: test-private-key
+  owner: test-owner
+  repos: test-repo1,test-repo2
