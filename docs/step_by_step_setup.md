@@ -176,7 +176,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class DependabotApplication {
 
-    public static void main(String[] args) {
+    static void main(String[] args) {
         SpringApplication.run(DependabotApplication.class, args);
     }
 }
@@ -193,7 +193,7 @@ Create `src/main/resources/application.yml`:
 
 ```yaml
 server:
-  port: 8080
+  port: 8081
 
 spring:
   application:
@@ -312,7 +312,7 @@ public class HealthCheckSteps {
 gauge run specs
 ```
 
-## What We've Accomplished
+## What We've Achieved
 
 ✅ Created a Spring Boot project with Gradle
 ✅ Set up JUnit 5 for unit testing
@@ -337,5 +337,3 @@ For each feature, we'll:
 3. Implement just enough code to pass (TDD - green)
 4. Refactor (TDD - refactor)
 5. Run Gauge tests to verify end-to-end behavior
-
-**Ready to start with Feature 1: Health Check Endpoint?** Let me know and I'll guide you through it step by step!
