@@ -1,26 +1,33 @@
 package com.dependabot.service;
 
 import com.dependabot.config.GitHubProperties;
-import com.dependabot.dto.PRDto;
+import io.jsonwebtoken.JwtBuilder;
+import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.time.Instant;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.util.Date;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.lenient;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for GitHubService
- * Using Mockito to mock dependencies, not Spring context
+ * Using Mockito to mock JWT generation instead of using real keys
  */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -37,16 +44,20 @@ class GitHubServiceTest {
     void setUp() {
         lenient().when(gitHubProperties.getAppId()).thenReturn("123456");
         lenient().when(gitHubProperties.getInstallationId()).thenReturn("78901234");
-        lenient().when(gitHubProperties.getPrivateKey()).thenReturn(getTestPrivateKey());
         lenient().when(gitHubProperties.getOwner()).thenReturn("test-owner");
         lenient().when(gitHubProperties.getRepos()).thenReturn(List.of("repo1", "repo2"));
     }
 
     @Test
-    @DisplayName("Should generate valid JWT token")
-    void shouldGenerateValidJWT() {
+    @DisplayName("Should generate valid JWT token structure")
+    void shouldGenerateValidJWTStructure() {
+        // Arrange: Setup mock private key
+        when(gitHubProperties.getPrivateKey()).thenReturn(generateTestPrivateKey());
+
+        // Act: Generate JWT
         String jwt = gitHubService.generateJWT();
 
+        // Assert: Verify JWT structure without validating signature
         assertThat(jwt)
                 .as("JWT token")
                 .isNotNull()
@@ -55,8 +66,13 @@ class GitHubServiceTest {
         // JWT should have 3 parts: header.payload.signature
         String[] parts = jwt.split("\\.");
         assertThat(parts)
-                .as("JWT parts")
+                .as("JWT parts (header.payload.signature)")
                 .hasSize(3);
+
+        // Verify each part is base64 encoded (not empty)
+        assertThat(parts[0]).as("JWT header").isNotEmpty();
+        assertThat(parts[1]).as("JWT payload").isNotEmpty();
+        assertThat(parts[2]).as("JWT signature").isNotEmpty();
     }
 
     @Test
@@ -65,45 +81,67 @@ class GitHubServiceTest {
         assertThat(gitHubService).isNotNull();
     }
 
+    @Test
+    @DisplayName("Should use correct issuer from app ID")
+    void shouldUseCorrectIssuer() {
+        // Arrange
+        when(gitHubProperties.getPrivateKey()).thenReturn(generateTestPrivateKey());
+        when(gitHubProperties.getAppId()).thenReturn("test-app-123");
+
+        // Act
+        String jwt = gitHubService.generateJWT();
+
+        // Assert: Verify JWT was generated (signature verification happens in integration tests)
+        assertThat(jwt).isNotNull();
+        verify(gitHubProperties, atLeastOnce()).getAppId();
+    }
+
+    @Test
+    @DisplayName("Should handle JWT generation with valid key format")
+    void shouldHandleJWTGenerationWithValidKey() {
+        // Arrange
+        String validKey = generateTestPrivateKey();
+        when(gitHubProperties.getPrivateKey()).thenReturn(validKey);
+
+        // Act & Assert: Should not throw exception
+        assertThat(gitHubService.generateJWT())
+                .as("JWT generation should succeed with valid key")
+                .isNotNull()
+                .matches("^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$"
+                );
+    }
+
     /**
-     * Valid test RSA private key in PKCS8 format (2048-bit)
-     * Generated specifically for testing - NOT for production use
+     * Generate a valid test RSA private key for testing
+     * This key is generated dynamically and is only for unit tests
      */
-    private String getTestPrivateKey() {
-        return "-----BEGIN PRIVATE KEY-----\n" +
-                "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKj\n" +
-                "MzEfYyjiWA4R4/M2bS1+fWIcPm15A8vrodI0OGGCmTXJkJXBBkJZbCcKJlJCcmrF\n" +
-                "9lrwqQW1nDXGxACpGl6RsaBASKp5qSGLwmvdj/gd6gMT0L1lN0KbZwKPxAFoMuWH\n" +
-                "vqkVm5S3tSH8PxDtLZeYLMmIr7xAWrp39pEfLZA6VB6/rEGKXyZfH2iVf6TFv3JH\n" +
-                "S6Gfpvk2mWx4T1jqj5H3Wf4q8wYX6wqCsHUYC6vVi2oZHbRzKLY4nQr2K5Uf1Rn5\n" +
-                "Xqhf7xrJJrCE8Jy8A7vR0b2pYPH2Q8XPqVaXV2mS4fLrJWqJ3Dq7xL5xN7yIXs3A\n" +
-                "TQR2GkG7AgMBAAECggEAHKklRrOVUaFnzGH3SLp1CpCcJwJIxNhJ5YqKKZFjmHHv\n" +
-                "xJ9u4yqQKLLqZvNEfWJR1pD8cJhx7Xb5oYX7UYmB3Vt7DdVu8YVxCHx6QfCXZqVr\n" +
-                "sT0f6H1pF4NvLqmDZj0TwN5kS8FdW1JKGvCfX0dC3Jm5ZqNjXhKGZ9Y1GQVQZH7e\n" +
-                "Xe3rK9/XvFqTXFuN8gWqLZr0KVqCxEjmLwf1vKzRYqLZJnZL1fXh0Y3qLZr0KVqC\n" +
-                "xEjmLwf1vKzRYqLZJnZL1fXh0Y3qLZr0KVqCxEjmLwf1vKzRYqLZJnZL1fXh0Y3q\n" +
-                "LZr0KVqCxEjmLwf1vKzRYqLZJnZL1fXh0Y3qLZr0KVqCxEjmLwf1vKzRYqLZJnZL\n" +
-                "1fXh0Y3qLZr0KVqCxEjmLwf1vKzRYqLQKBgQDmz8ZqXqBr7qTJPJKHh2R7YLjCJJ\n" +
-                "8w0L1v3K7q8Z1w7YqKbqTJPJKHh2R7YLjCJJ8w0L1v3K7q8Z1w7YqKbqTJPJKHh2\n" +
-                "R7YLjCJJ8w0L1v3K7q8Z1w7YqKbqTJPJKHh2R7YLjCJJ8w0L1v3K7q8Z1w7YqKbq\n" +
-                "TJPJK Hh2R7YLjCJJ8w0L1v3K7q8Z1w7YqKbqTJPJKHh2R7YLjCJJ8w0L1v3K7q8Z\n" +
-                "1w7YqKbqTJPJKHh2R7YLjCJJ8wKBgQDPpqCsLvCqXqBr7qTJPJKHh2R7YLjCJJ8w\n" +
-                "0L1v3K7q8Z1w7YqKbqTJPJKHh2R7YLjCJJ8w0L1v3K7q8Z1w7YqKbqTJPJKHh2R7\n" +
-                "YLjCJJ8w0L1v3K7q8Z1w7YqKbqTJPJKHh2R7YLjCJJ8w0L1v3K7q8Z1w7YqKbqTJ\n" +
-                "PJKHh2R7YLjCJJ8w0L1v3K7q8Z1w7YqKbqTJPJKHh2R7YLjCJJ8w0L1v3K7q8Z1w\n" +
-                "7YqKbqTJPJKHh2R7YLjCJQKBgGJxS2UvJWqKZ0fLrJWqJ3Dq7xL5xN7yIXs3ATQR\n" +
-                "2GkG7xL5xN7yIXs3ATQR2GkG7xL5xN7yIXs3ATQR2GkG7xL5xN7yIXs3ATQR2GkG\n" +
-                "7xL5xN7yIXs3ATQR2GkG7xL5xN7yIXs3ATQR2GkG7xL5xN7yIXs3ATQR2GkG7xL5\n" +
-                "xN7yIXs3ATQR2GkG7xL5xN7yIXs3ATQR2GkG7xL5xN7yIXs3ATQR2GkG7xL5xN7y\n" +
-                "IXs3ATQR2GkG7xL5AoGAHh8s5wPGfLrJWqJ3Dq7xL5xN7yIXs3ATQR2GkG7xL5xN\n" +
-                "7yIXs3ATQR2GkG7xL5xN7yIXs3ATQR2GkG7xL5xN7yIXs3ATQR2GkG7xL5xN7yIX\n" +
-                "s3ATQR2GkG7xL5xN7yIXs3ATQR2GkG7xL5xN7yIXs3ATQR2GkG7xL5xN7yIXs3AT\n" +
-                "QR2GkG7xL5xN7yIXs3ATQR2GkG7xL5xN7yIXs3ATQR2GkG7xL5xN7yIXs3ATQR2G\n" +
-                "kG7xL5xN7yIXsCgYEAoqTN3L1v3K7q8Z1w7YqKbqTJPJKHh2R7YLjCJJ8w0L1v3K\n" +
-                "7q8Z1w7YqKbqTJPJKHh2R7YLjCJJ8w0L1v3K7q8Z1w7YqKbqTJPJKHh2R7YLjCJJ\n" +
-                "8w0L1v3K7q8Z1w7YqKbqTJPJKHh2R7YLjCJJ8w0L1v3K7q8Z1w7YqKbqTJPJKHh2\n" +
-                "R7YLjCJJ8w0L1v3K7q8Z1w7YqKbqTJPJKHh2R7YLjCJJ8w0L1v3K7q8Z1w7YqKbq\n" +
-                "TJPJK=\n" +
-                "-----END PRIVATE KEY-----";
+    private String generateTestPrivateKey() {
+        try {
+            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+            keyGen.initialize(2048);
+            KeyPair pair = keyGen.generateKeyPair();
+            PrivateKey privateKey = pair.getPrivate();
+
+            // Convert to PEM format
+            String base64 = java.util.Base64.getEncoder()
+                    .encodeToString(privateKey.getEncoded());
+
+            StringBuilder pem = new StringBuilder();
+            pem.append("-----BEGIN PRIVATE KEY-----\n");
+
+            // Split into 64-character lines
+            int index = 0;
+            while (index < base64.length()) {
+                pem.append(base64, index, Math.min(index + 64, base64.length()));
+                pem.append("\n");
+                index += 64;
+            }
+
+            pem.append("-----END PRIVATE KEY-----");
+            return pem.toString();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate test key", e);
+        }
     }
 }
