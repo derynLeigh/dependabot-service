@@ -1,33 +1,107 @@
 package com.dependabot.dto;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
-@Setter
-@Getter
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class PRDto {
 
-    // Getters and Setters
+    /**
+     * GitHub PR number (unique within repository)
+     */
+    private Integer number;
+
+    /**
+     * GitHub PR ID (globally unique)
+     */
     private Long id;
+
+    /**
+     * PR title
+     */
     private String title;
+
+    /**
+     * PR author/creator username
+     */
+    private String author;
+
+    /**
+     * Repository name
+     */
+    private String repository;
+
+    /**
+     * Full URL to the PR on GitHub
+     */
     private String url;
-    private String repo;
+
+    /**
+     * PR state (OPEN, CLOSED, MERGED)
+     */
+    private String state;
+
+    /**
+     * When the PR was created
+     */
     private Instant createdAt;
+
+    /**
+     * When the PR was last updated
+     */
     private Instant updatedAt;
 
-    // Constructors
-    public PRDto() {
+    /**
+     * Dependency name being updated
+     * Example: "spring-boot", "lodash"
+     */
+    private String dependency;
+
+    /**
+     * Current version of the dependency
+     */
+    private String currentVersion;
+
+    /**
+     * Proposed/new version of the dependency
+     */
+    private String proposedVersion;
+
+    /**
+     * PR body/description
+     */
+    private String body;
+
+    /**
+     * Number of commits in the PR
+     */
+    private Integer commits;
+
+    /**
+     * Number of files changed
+     */
+    private Integer filesChanged;
+
+    /**
+     * Whether the PR has conflicts
+     */
+    private Boolean hasConflicts;
+
+    /**
+     * Backward compatibility: map 'repo' to 'repository'
+     */
+    public String getRepo() {
+        return repository;
     }
 
-    public PRDto(Long id, String title, String url, String repo, Instant createdAt, Instant updatedAt) {
-        this.id = id;
-        this.title = title;
-        this.url = url;
-        this.repo = repo;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+    public void setRepo(String repo) {
+        this.repository = repo;
     }
-
 }

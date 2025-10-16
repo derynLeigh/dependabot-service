@@ -1,42 +1,37 @@
 # GitHub Service Integration
 
-The service should authenticate with GitHub and fetch Dependabot pull requests.
+The GitHub Service should authenticate with GitHub and retrieve Dependabot pull requests.
 
-## Service should generate valid JWT token for GitHub App authentication
-* Create GitHub service with valid configuration
-* Generate JWT token
-* JWT token should not be null
-* JWT token should contain three parts separated by dots
-* JWT token should be valid for 10 minutes
+## Service should authenticate with GitHub
+* Start the application with GitHub configuration
+* GitHub service should be initialized
+* GitHub service should generate valid JWT token
+* JWT token should have three parts
 
-## Service should fetch Dependabot PRs from a single repository
-* Create GitHub service with mock credentials
-* Mock GitHub API to return sample pull requests
-* Fetch pull requests from repository "test-repo"
-* Should return list of pull requests
-* All returned PRs should be from dependabot bot user
+## Service should retrieve pull requests from a repository
+* Start the application with GitHub configuration
+* Get pull requests for repository "test-repo"
+* Pull requests list should not be null
+* Pull requests should be returned as DTOs
 
-## Service should filter out non-Dependabot PRs
-* Create GitHub service with mock credentials
-* Mock GitHub API with mixed PR authors
-* Fetch pull requests from repository "test-repo"
-* Should only return Dependabot PRs
-* Should not include PRs from regular users
+## Service should filter Dependabot pull requests
+* Start the application with GitHub configuration
+* Get pull requests for repository "test-repo"
+* Filter only Dependabot pull requests
+* All returned PRs should be from Dependabot
 
-## Service should convert GitHub PR to DTO format
-* Create a sample GitHub pull request
-* Convert pull request to DTO
-* DTO should contain PR id
-* DTO should contain PR title
-* DTO should contain PR URL
-* DTO should contain repository name
-* DTO should contain created date
-* DTO should contain updated date
+## Service should handle repository with no pull requests
+* Start the application with GitHub configuration
+* Get pull requests for repository "empty-repo"
+* Pull requests list should be empty
 
-## Service should handle repository fetch errors gracefully
-* Create GitHub service with mock credentials
-* Mock GitHub API to throw an error for specific repository
-* Attempt to fetch from failing repository
-* Should capture error details
-* Error should include repository name
-* Error should include error message
+## Service should handle non-existent repository
+* Start the application with GitHub configuration
+* Get pull requests for repository "non-existent-repo"
+* Should handle repository not found error gracefully
+
+## Service should retrieve PRs from multiple repositories
+* Start the application with GitHub configuration
+* Get pull requests for multiple repositories "repo1,repo2,repo3"
+* Pull requests should contain results from all repositories
+* Each PR should have repository name populated
