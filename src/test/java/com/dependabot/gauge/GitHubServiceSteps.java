@@ -77,8 +77,7 @@ public class GitHubServiceSteps {
     public void generateJWTToken() {
         jwtToken = gitHubService.generateJWT();
 
-        log.debug("Generated JWT token: {}",
-                jwtToken != null ? jwtToken.substring(0, Math.min(20, jwtToken.length())) + "..." : "null");
+        log.debug("Generated JWT token: [redacted], length={}", jwtToken != null ? jwtToken.length() : 0);
 
         assertThat(jwtToken)
                 .as("JWT token")
