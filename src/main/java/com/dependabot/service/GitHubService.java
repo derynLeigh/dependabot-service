@@ -40,20 +40,20 @@ public class GitHubService {
      *
      * @return JWT token string
      */
+
     public String generateJWT() {
         try {
-            // Parse the private key
-            String privateKeyPEM = gitHubProperties.getPrivateKey()
-                    .replace("-----BEGIN PRIVATE KEY-----", "")
-                    .replace("-----END PRIVATE KEY-----", "")
-                    .replace("-----BEGIN RSA PRIVATE KEY-----", "")
-                    .replace("-----END RSA PRIVATE KEY-----", "")
-                    .replaceAll("\\s+", "");
+            String keyContent = gitHubProperties.getPrivateKey();
 
-            byte[] encoded = Base64.getDecoder().decode(privateKeyPEM);
-            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            PrivateKey privateKey = keyFactory.generatePrivate(keySpec);
+            // Determine key format and parse accordingly
+            PrivateKey privateKey;
+            if (keyContent.contains("BEGIN RSA PRIVATE KEY")) {
+                // PKCS#1 format - need to convert to PKCS#8
+                privateKey = parsePKCS1PrivateKey(keyContent);
+            } else {
+                // PKCS#8 format
+                privateKey = parsePKCS8PrivateKey(keyContent);
+            }
 
             // Create JWT using modern API
             Instant now = Instant.now();
@@ -70,6 +70,62 @@ public class GitHubService {
             log.error("Failed to generate JWT", e);
             throw new RuntimeException("Failed to generate JWT", e);
         }
+    }
+
+    /**
+     * Parse PKCS#8 format private key
+     */
+    private PrivateKey parsePKCS8PrivateKey(String keyContent) throws Exception {
+        String privateKeyPEM = keyContent
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replaceAll("\\s+", "");
+
+        byte[] encoded = Base64.getDecoder().decode(privateKeyPEM);
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        return keyFactory.generatePrivate(keySpec);
+    }
+
+    /**
+     * Parse PKCS#1 format private key (GitHub App default format)
+     * Converts PKCS#1 to PKCS#8 format
+     */
+    private PrivateKey parsePKCS1PrivateKey(String keyContent) throws Exception {
+        String privateKeyPEM = keyContent
+                .replace("-----BEGIN RSA PRIVATE KEY-----", "")
+                .replace("-----END RSA PRIVATE KEY-----", "")
+                .replaceAll("\\s+", "");
+
+        byte[] pkcs1Bytes = Base64.getDecoder().decode(privateKeyPEM);
+
+        // Convert PKCS#1 to PKCS#8
+        byte[] pkcs8Bytes = convertPKCS1ToPKCS8(pkcs1Bytes);
+
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(pkcs8Bytes);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        return keyFactory.generatePrivate(keySpec);
+    }
+
+    /**
+     * Convert PKCS#1 format to PKCS#8 format
+     */
+    private byte[] convertPKCS1ToPKCS8(byte[] pkcs1Bytes) {
+        // PKCS#8 header for RSA private key
+        int pkcs1Length = pkcs1Bytes.length;
+        int totalLength = pkcs1Length + 22;
+        byte[] pkcs8Header = new byte[] {
+                0x30, (byte) 0x82, (byte) ((totalLength >> 8) & 0xff), (byte) (totalLength & 0xff), // SEQUENCE
+                0x2, 0x1, 0x0, // INTEGER 0 (version)
+                0x30, 0xD, 0x6, 0x9, 0x2A, (byte) 0x86, 0x48, (byte) 0x86, (byte) 0xF7, 0xD, 0x1, 0x1, 0x1, 0x5, 0x0, // RSA OID
+                0x4, (byte) 0x82, (byte) ((pkcs1Length >> 8) & 0xff), (byte) (pkcs1Length & 0xff) // OCTET STRING
+        };
+
+        byte[] pkcs8Bytes = new byte[pkcs8Header.length + pkcs1Bytes.length];
+        System.arraycopy(pkcs8Header, 0, pkcs8Bytes, 0, pkcs8Header.length);
+        System.arraycopy(pkcs1Bytes, 0, pkcs8Bytes, pkcs8Header.length, pkcs1Bytes.length);
+
+        return pkcs8Bytes;
     }
 
     /**
