@@ -34,7 +34,7 @@ logs/
 # Environment
 .env.local
 .env.*.local
-!.env  # We want .env to be tracked (but encrypted)
+.env  # We want .env to be tracked (but encrypted)
 
 # Git-crypt key (NEVER commit this!)
 *-git-crypt-key
