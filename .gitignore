@@ -32,8 +32,13 @@ Thumbs.db
 logs/
 
 # Environment
-.env
 .env.local
+.env.*.local
+!.env  # We want .env to be tracked (but encrypted)
+
+# Git-crypt key (NEVER commit this!)
+*-git-crypt-key
+*.git-crypt-key
 
 # Gauge
 reports/

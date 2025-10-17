@@ -1,14 +1,21 @@
 #!/bin/bash
 
-# Build the project first
+set -e  # Exit on error
+
+echo "Building test classes..."
 ./gradlew testClasses
 
-# Get the test runtime classpath from Gradle
+echo "Getting classpath..."
 CLASSPATH=$(./gradlew -q printTestClasspath)
 
-# Set Gauge environment variables and run
+if [ -z "$CLASSPATH" ]; then
+    echo "Error: Could not get classpath"
+    exit 1
+fi
+
+echo "Setting Gauge environment variables..."
 export gauge_custom_compile_dir="build/classes/java/main:build/classes/java/test"
 export gauge_custom_classpath="$CLASSPATH"
 
-# Run Gauge with the specs
+echo "Running Gauge tests..."
 gauge run specs "$@"

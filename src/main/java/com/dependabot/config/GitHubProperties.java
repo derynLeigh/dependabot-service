@@ -4,12 +4,18 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
 
+/**
+ * Configuration properties for GitHub App integration
+ * Binds properties with prefix "github" from application.yml or environment variables
+ */
 @Setter
 @Getter
+@Component
 @Validated
 @ConfigurationProperties(prefix = "github")
 public class GitHubProperties {
@@ -45,5 +51,7 @@ public class GitHubProperties {
      * List of repository names to monitor
      */
     private List<String> repos;
+
+    // Getters and Setters
 
 }
