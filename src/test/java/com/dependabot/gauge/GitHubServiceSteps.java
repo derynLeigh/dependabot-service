@@ -4,6 +4,7 @@ import com.dependabot.config.GitHubProperties;
 import com.dependabot.dto.PRDto;
 import com.dependabot.service.GitHubService;
 import com.thoughtworks.gauge.BeforeScenario;
+import com.thoughtworks.gauge.datastore.ScenarioDataStore;
 import com.thoughtworks.gauge.Step;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -116,6 +117,11 @@ public class GitHubServiceSteps {
             log.debug("Fetching PRs for repository: {}", repositoryName);
             pullRequests = gitHubService.getDependabotPRs(repositoryName);
             log.debug("Retrieved {} PRs", pullRequests != null ? pullRequests.size() : 0);
+
+            // Store repository name in scenario data store for caching steps
+            ScenarioDataStore.put("lastRepository", repositoryName);
+            ScenarioDataStore.put("pullRequests", pullRequests);
+
         } catch (Exception e) {
             log.warn("Error fetching PRs: {}", e.getMessage());
             lastException = e;
