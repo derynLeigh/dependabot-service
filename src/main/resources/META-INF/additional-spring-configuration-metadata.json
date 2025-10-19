@@ -1,0 +1,10 @@
+{
+  "properties": [
+    {
+      "name": "cache.ttl-ms",
+      "type": "java.lang.Long",
+      "description": "Cache time-to-live in milliseconds.",
+      "defaultValue": 300000
+    }
+  ]
+}

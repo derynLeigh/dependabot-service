@@ -6,6 +6,7 @@ import io.jsonwebtoken.Jwts;
 import org.kohsuke.github.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -156,10 +157,12 @@ public class GitHubService {
 
     /**
      * Get Dependabot pull requests for a specific repository
+     * Results are cached to reduce API calls
      *
      * @param repositoryName name of the repository
      * @return list of Dependabot PRs as DTOs
      */
+    @Cacheable(value = "github-prs", key = "#repositoryName")
     public List<PRDto> getDependabotPRs(String repositoryName) {
         try {
             GitHub github = getGitHubClient();
