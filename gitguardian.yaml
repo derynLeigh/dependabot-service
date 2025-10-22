@@ -1,0 +1,6 @@
+version: 2
+
+paths-ignore:
+  - "**/*Test.java"           # Ignore all test files
+  - "**/test/**"              # Ignore test directories
+  - "src/test/**"             # Ignore src/test directory
