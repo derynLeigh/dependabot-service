@@ -14,9 +14,20 @@ spring:
 github:
   app-id: ${GITHUB_APP_ID}
   installation-id: ${GITHUB_INSTALLATION_ID}
-  private-key: ${GITHUB_PRIVATE_KEY}
+  private-key-file: ${GITHUB_PRIVATE_KEY_FILE}
   owner: ${GITHUB_OWNER:derynLeigh}
   repos: ${GITHUB_REPOS:techronymsService,techronyms-user-service,dependabot-pr-summariser}
+
+# Swagger/OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+    filter: true
 
 # Cache Configuration
 cache:

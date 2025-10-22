@@ -2,6 +2,15 @@
 
 set -e  # Exit on error
 
+echo "Loading environment variables from .env.local..."
+
+# Load environment variables from .env.local
+set -a
+source .env.local
+set +a
+
+echo "Environment variables loaded successfully"
+
 echo "Building test classes..."
 ./gradlew testClasses
 

@@ -1,0 +1,7 @@
+# GitHub Configuration
+github:
+  app-id: ${GITHUB_APP_ID}
+  installation-id: ${GITHUB_INSTALLATION_ID}
+  private-key: ${GITHUB_PRIVATE_KEY}
+  owner: ${GITHUB_OWNER:derynLeigh}
+  repos: ${GITHUB_REPOS:techronymsService,techronyms-user-service,dependabot-pr-summariser}

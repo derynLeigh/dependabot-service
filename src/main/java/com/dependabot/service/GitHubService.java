@@ -44,16 +44,16 @@ public class GitHubService {
 
     public String generateJWT() {
         try {
-            String keyContent = gitHubProperties.getPrivateKey();
+            String keyContent = gitHubProperties.getPrivateKeyContent();
 
             // Determine key format and parse accordingly
             PrivateKey privateKey;
             if (keyContent.contains("BEGIN RSA PRIVATE KEY")) {
-                // PKCS#1 format - need to convert to PKCS#8
                 privateKey = parsePKCS1PrivateKey(keyContent);
-            } else {
-                // PKCS#8 format
+            } else if (keyContent.contains("BEGIN PRIVATE KEY")) {
                 privateKey = parsePKCS8PrivateKey(keyContent);
+            } else {
+                throw new IllegalArgumentException("Unknown private key format");
             }
 
             // Create JWT using modern API
@@ -78,8 +78,8 @@ public class GitHubService {
      */
     private PrivateKey parsePKCS8PrivateKey(String keyContent) throws Exception {
         String privateKeyPEM = keyContent
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
+                .replaceAll("-+BEGIN PRIVATE KEY-+", "")
+                .replaceAll("-+END PRIVATE KEY-+", "")
                 .replaceAll("\\s+", "");
 
         byte[] encoded = Base64.getDecoder().decode(privateKeyPEM);
@@ -94,8 +94,8 @@ public class GitHubService {
      */
     private PrivateKey parsePKCS1PrivateKey(String keyContent) throws Exception {
         String privateKeyPEM = keyContent
-                .replace("-----BEGIN RSA PRIVATE KEY-----", "")
-                .replace("-----END RSA PRIVATE KEY-----", "")
+                .replaceAll("-+BEGIN RSA PRIVATE KEY-+", "")   // ✅ Matches any number of dashes
+                .replaceAll("-+END RSA PRIVATE KEY-+", "")     // ✅ Matches any number of dashes
                 .replaceAll("\\s+", "");
 
         byte[] pkcs1Bytes = Base64.getDecoder().decode(privateKeyPEM);
@@ -171,7 +171,11 @@ public class GitHubService {
             log.debug("Fetching Dependabot PRs for {}/{}", owner, repositoryName);
 
             GHRepository repository = github.getRepository(owner + "/" + repositoryName);
-            List<GHPullRequest> pullRequests = repository.getPullRequests(GHIssueState.OPEN);
+            List<GHPullRequest> pullRequests = repository
+                    .queryPullRequests()
+                    .state(GHIssueState.OPEN)
+                    .list()
+                    .toList();
 
             return pullRequests.stream()
                     .filter(this::isDependabotPR)
@@ -186,10 +190,13 @@ public class GitHubService {
 
     /**
      * Get Dependabot pull requests from multiple repositories
+     * Note: Calls getDependabotPRs which is @Cacheable. Each repository
+     * call will be cached individually when called externally.
      *
      * @param repositories list of repository names
      * @return combined list of Dependabot PRs from all repositories
      */
+    @SuppressWarnings("SpringCacheableMethodCallsInspection")
     public List<PRDto> getAllDependabotPRs(List<String> repositories) {
         return repositories.stream()
                 .flatMap(repo -> getDependabotPRs(repo).stream())
@@ -219,7 +226,7 @@ public class GitHubService {
             return DEPENDABOT_LOGIN.equalsIgnoreCase(login) ||
                     login.toLowerCase().contains(DEPENDABOT_APP);
 
-        } catch (IOException e) {
+        } catch (Exception e) {  // Changed from IOException to Exception
             log.warn("Error checking PR author", e);
             return false;
         }
@@ -242,8 +249,8 @@ public class GitHubService {
                     .repository(repositoryName)
                     .url(pr.getHtmlUrl().toString())
                     .state(pr.getState().name())
-                    .createdAt(pr.getCreatedAt().toInstant())
-                    .updatedAt(pr.getUpdatedAt().toInstant())
+                    .createdAt(pr.getCreatedAt())
+                    .updatedAt(pr.getUpdatedAt())
                     .body(pr.getBody())
                     .commits(pr.getCommits())
                     .filesChanged(pr.getChangedFiles())

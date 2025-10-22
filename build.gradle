@@ -38,7 +38,10 @@ dependencies {
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
     // GitHub API
-    implementation 'org.kohsuke:github-api:1.321'
+    implementation 'org.kohsuke:github-api:2.0-rc.5'
+
+    // OpenAPI / Swagger
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 
     // JWT for GitHub App authentication
     implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
@@ -54,8 +57,6 @@ dependencies {
 
     // Development tools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
-    // https://mvnrepository.com/artifact/me.paulschwarz/spring-dotenv
-    developmentOnly 'me.paulschwarz:spring-dotenv:4.0.0'
 
     // Testing - JUnit 5
     testImplementation 'org.springframework.boot:spring-boot-starter-test'

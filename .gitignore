@@ -31,14 +31,19 @@ Thumbs.db
 *.log
 logs/
 
-# Environment
+# Local environment files
+.env
 .env.local
 .env.*.local
-.env  # We want .env to be tracked (but encrypted)
 
-# Git-crypt key (NEVER commit this!)
-*-git-crypt-key
-*.git-crypt-key
+# Make sure scripts are NOT ignored
+!run-app.sh
+!run-dev.sh
+!check-health.sh
+!stop-app.sh
+!view-logs.sh
+!run-unit-tests.sh
+!load-env-and-test.sh
 
 # Gauge
 reports/
@@ -47,3 +52,6 @@ reports/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
+
+# GitHub private key
+config/github-private-key.pem
