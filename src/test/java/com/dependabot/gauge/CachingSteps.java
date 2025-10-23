@@ -244,6 +244,7 @@ public class CachingSteps {
     }
 
     @Step("Retrieved data should match stored data")
+    @SuppressWarnings("ConstantConditions")
     public void verifyRetrievedDataMatchesStored() {
         Cache cache = cacheManager.getCache("github-prs");
         Cache.ValueWrapper value = cache.get("test-cache-repo");
@@ -271,4 +272,5 @@ public class CachingSteps {
 
         log.debug("✓ Cache correctly stored and retrieved data");
     }
+
 }

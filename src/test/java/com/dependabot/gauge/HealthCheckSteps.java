@@ -1,6 +1,7 @@
 package com.dependabot.gauge;
 
 import com.thoughtworks.gauge.BeforeScenario;
+import com.thoughtworks.gauge.datastore.ScenarioDataStore;
 import com.thoughtworks.gauge.Step;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
@@ -30,11 +31,9 @@ public class HealthCheckSteps {
 
     private Response response;
 
-    private TestContextManager testContextManager;
-
     @BeforeScenario
     public void setUp() throws Exception {
-        testContextManager = new TestContextManager(getClass());
+        TestContextManager testContextManager = new TestContextManager(getClass());
         testContextManager.prepareTestInstance(this);
 
         log.debug("Spring context initialized. Port: {}", port);
@@ -68,8 +67,16 @@ public class HealthCheckSteps {
 
     @Step("Response status code should be <statusCode>")
     public void verifyStatusCode(String statusCode) {
+        // Try to get response from shared data store first (for REST API tests)
+        Response sharedResponse = (Response) ScenarioDataStore.get("response");
+        Response actualResponse = sharedResponse != null ? sharedResponse : response;
+
         int expectedCode = Integer.parseInt(statusCode);
-        assertThat(response.getStatusCode())
+        assertThat(actualResponse)
+                .as("Response should not be null")
+                .isNotNull();
+
+        assertThat(actualResponse.getStatusCode())
                 .as("Response status code")
                 .isEqualTo(expectedCode);
     }

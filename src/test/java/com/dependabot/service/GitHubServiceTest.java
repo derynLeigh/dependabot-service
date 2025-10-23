@@ -5,137 +5,161 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.PrivateKey;
-import java.util.List;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Base64;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
-/**
- * Unit tests for GitHubService
- * Using Mockito to mock JWT generation instead of using real keys
- */
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("GitHub Service Tests")
 class GitHubServiceTest {
+
+    /**
+     * Test RSA private key loaded from test resources
+     * This is a dedicated test key that is never used in production
+     */
+    private static String loadTestPrivateKey() {
+        try {
+            return Files.readString(
+                    Paths.get("src/test/resources/test-github-key.pem")
+            );
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load test private key", e);
+        }
+    }
 
     @Mock
     private GitHubProperties gitHubProperties;
 
-    @InjectMocks
     private GitHubService gitHubService;
 
     @BeforeEach
-    void setUp() {
-        lenient().when(gitHubProperties.getAppId()).thenReturn("123456");
-        lenient().when(gitHubProperties.getInstallationId()).thenReturn("78901234");
-        lenient().when(gitHubProperties.getOwner()).thenReturn("test-owner");
-        lenient().when(gitHubProperties.getRepos()).thenReturn(List.of("repo1", "repo2"));
-    }
+    void setUp() throws IOException {
+        String testKey = loadTestPrivateKey();
 
+        // Use lenient() to avoid "unnecessary stubbing" warnings for tests that override these
+        lenient().when(gitHubProperties.getPrivateKeyContent()).thenReturn(testKey);
+        lenient().when(gitHubProperties.getAppId()).thenReturn("123456");
+        lenient().when(gitHubProperties.getInstallationId()).thenReturn("789012");
+        lenient().when(gitHubProperties.getOwner()).thenReturn("test-owner");
+
+        gitHubService = new GitHubService(gitHubProperties);
+    }
     @Test
     @DisplayName("Should generate valid JWT token structure")
     void shouldGenerateValidJWTStructure() {
-        // Arrange: Setup mock private key
-        when(gitHubProperties.getPrivateKey()).thenReturn(generateTestPrivateKey());
-
-        // Act: Generate JWT
         String jwt = gitHubService.generateJWT();
 
-        // Assert: Verify JWT structure without validating signature
         assertThat(jwt)
-                .as("JWT token")
                 .isNotNull()
-                .isNotEmpty();
+                .contains(".");
 
-        // JWT should have 3 parts: header.payload.signature
         String[] parts = jwt.split("\\.");
         assertThat(parts)
-                .as("JWT parts (header.payload.signature)")
+                .as("JWT should have 3 parts: header, payload, signature")
                 .hasSize(3);
 
-        // Verify each part is base64 encoded (not empty)
-        assertThat(parts[0]).as("JWT header").isNotEmpty();
-        assertThat(parts[1]).as("JWT payload").isNotEmpty();
-        assertThat(parts[2]).as("JWT signature").isNotEmpty();
-    }
+        // Verify each part is base64-encoded
+        assertThatCode(() -> Base64.getUrlDecoder().decode(parts[0]))
+                .as("Header should be valid base64")
+                .doesNotThrowAnyException();
 
-    @Test
-    @DisplayName("Should create GitHubService instance")
-    void shouldCreateService() {
-        assertThat(gitHubService).isNotNull();
+        assertThatCode(() -> Base64.getUrlDecoder().decode(parts[1]))
+                .as("Payload should be valid base64")
+                .doesNotThrowAnyException();
     }
 
     @Test
     @DisplayName("Should use correct issuer from app ID")
     void shouldUseCorrectIssuer() {
-        // Arrange
-        when(gitHubProperties.getPrivateKey()).thenReturn(generateTestPrivateKey());
-        when(gitHubProperties.getAppId()).thenReturn("test-app-123");
+        String testAppId = "test-app-123";
+        when(gitHubProperties.getAppId()).thenReturn(testAppId);
 
-        // Act
         String jwt = gitHubService.generateJWT();
 
-        // Assert: Verify JWT was generated (signature verification happens in integration tests)
         assertThat(jwt).isNotNull();
-        verify(gitHubProperties, atLeastOnce()).getAppId();
+
+        // Decode and verify issuer
+        String[] parts = jwt.split("\\.");
+        String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
+        assertThat(payload)
+                .as("JWT payload should contain correct issuer")
+                .contains("\"iss\":\"" + testAppId + "\"");
     }
 
     @Test
     @DisplayName("Should handle JWT generation with valid key format")
     void shouldHandleJWTGenerationWithValidKey() {
-        // Arrange
-        String validKey = generateTestPrivateKey();
-        when(gitHubProperties.getPrivateKey()).thenReturn(validKey);
-
-        // Act & Assert: Should not throw exception
-        assertThat(gitHubService.generateJWT())
+        assertThatCode(() -> gitHubService.generateJWT())
                 .as("JWT generation should succeed with valid key")
-                .isNotNull()
-                .matches("^[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+\\.[A-Za-z0-9-_]+$"
-                );
+                .doesNotThrowAnyException();
     }
 
-    /**
-     * Generate a valid test RSA private key for testing
-     * This key is generated dynamically and is only for unit tests
-     */
-    private String generateTestPrivateKey() {
-        try {
-            KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-            keyGen.initialize(2048);
-            KeyPair pair = keyGen.generateKeyPair();
-            PrivateKey privateKey = pair.getPrivate();
+    @Test
+    @DisplayName("Should throw exception when private key is not configured")
+    void shouldFailWhenPrivateKeyNotConfigured() throws IOException {
+        when(gitHubProperties.getPrivateKeyContent())
+                .thenThrow(new IllegalStateException("Either 'github.private-key' or 'github.private-key-file' must be configured"));
 
-            // Convert to PEM format
-            String base64 = java.util.Base64.getEncoder()
-                    .encodeToString(privateKey.getEncoded());
+        assertThatThrownBy(() -> gitHubService.generateJWT())
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to generate JWT")
+                .hasCauseInstanceOf(IllegalStateException.class);
+    }
 
-            StringBuilder pem = new StringBuilder();
-            pem.append("-----BEGIN PRIVATE KEY-----\n");
+    @Test
+    @DisplayName("Should throw exception for invalid key format")
+    void shouldFailWithInvalidKeyFormat() throws IOException {
+        when(gitHubProperties.getPrivateKeyContent()).thenReturn("invalid-key-content");
 
-            // Split into 64-character lines
-            int index = 0;
-            while (index < base64.length()) {
-                pem.append(base64, index, Math.min(index + 64, base64.length()));
-                pem.append("\n");
-                index += 64;
-            }
+        assertThatThrownBy(() -> gitHubService.generateJWT())
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("Failed to generate JWT");
+    }
 
-            pem.append("-----END PRIVATE KEY-----");
-            return pem.toString();
+    @Test
+    @DisplayName("Should generate JWT with expiration time")
+    void shouldGenerateJWTWithExpiration() {
+        String jwt = gitHubService.generateJWT();
 
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to generate test key", e);
-        }
+        String[] parts = jwt.split("\\.");
+        String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
+
+        assertThat(payload)
+                .as("JWT should contain expiration claim")
+                .contains("\"exp\":");
+    }
+
+    @Test
+    @DisplayName("Should generate JWT with issued at time")
+    void shouldGenerateJWTWithIssuedAt() {
+        String jwt = gitHubService.generateJWT();
+
+        String[] parts = jwt.split("\\.");
+        String payload = new String(Base64.getUrlDecoder().decode(parts[1]));
+
+        assertThat(payload)
+                .as("JWT should contain issued at claim")
+                .contains("\"iat\":");
+    }
+
+    @Test
+    @DisplayName("Should use RS256 algorithm for signing")
+    void shouldUseRS256Algorithm() {
+        String jwt = gitHubService.generateJWT();
+
+        String[] parts = jwt.split("\\.");
+        String header = new String(Base64.getUrlDecoder().decode(parts[0]));
+
+        assertThat(header)
+                .as("JWT header should specify RS256 algorithm")
+                .contains("\"alg\":\"RS256\"");
     }
 }

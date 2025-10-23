@@ -4,18 +4,15 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.List;
 
-/**
- * Configuration properties for GitHub App integration
- * Binds properties with prefix "github" from application.yml or environment variables
- */
 @Setter
 @Getter
-@Component
 @Validated
 @ConfigurationProperties(prefix = "github")
 public class GitHubProperties {
@@ -35,11 +32,18 @@ public class GitHubProperties {
     private String installationId;
 
     /**
-     * GitHub App Private Key
+     * GitHub App Private Key (direct content)
      * Used for generating JWT tokens
+     * Either this OR privateKeyFile must be provided
      */
-    @NotBlank(message = "GitHub Private Key must not be blank")
     private String privateKey;
+
+    /**
+     * Path to GitHub App Private Key file
+     * Alternative to providing the key directly
+     * Either this OR privateKey must be provided
+     */
+    private String privateKeyFile;
 
     /**
      * GitHub repository owner (username or organization)
@@ -52,6 +56,25 @@ public class GitHubProperties {
      */
     private List<String> repos;
 
-    // Getters and Setters
+    /**
+     * Helper method to get the actual private key content
+     * Reads from file if privateKeyFile is set, otherwise returns privateKey
+     *
+     * @return The private key content as a string
+     * @throws IOException if the file cannot be read
+     * @throws IllegalStateException if neither privateKey nor privateKeyFile is configured
+     */
+    public String getPrivateKeyContent() throws IOException {
+        if (privateKey != null && !privateKey.trim().isEmpty()) {
+            return privateKey;
+        }
 
+        if (privateKeyFile != null && !privateKeyFile.trim().isEmpty()) {
+            return Files.readString(Paths.get(privateKeyFile));
+        }
+
+        throw new IllegalStateException(
+                "Either 'github.private-key' or 'github.private-key-file' must be configured"
+        );
+    }
 }
