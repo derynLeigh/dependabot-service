@@ -30,6 +30,7 @@ Thumbs.db
 # Logs
 *.log
 logs/
+error-logs
 
 # Local environment files
 .env
@@ -55,3 +56,6 @@ reports/
 
 # GitHub private key
 config/github-private-key.pem
+
+# Test keys - regenerate if needed
+src/test/resources/test-github-key.pem

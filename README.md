@@ -155,6 +155,15 @@ gauge run specs
 # The JAR will be created at: build/libs/dependabot-service.jar
 ```
 
+## Test Key
+
+The project uses a dedicated test RSA key for unit tests. If you need to regenerate it:
+```bash
+openssl genrsa -out src/test/resources/test-github-key.pem 2048
+```
+
+This key is for testing only and is ignored by GitGuardian via `.gitguardian.yaml`.
+
 ## Development Workflow
 
 ### Hot Reload with DevTools

@@ -12,7 +12,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Tests for GitHubProperties validation
@@ -59,7 +58,7 @@ class GitHubPropertiesValidationTest {
     @Test
     @DisplayName("Should succeed with private key file path provided")
     void shouldSucceedWithPrivateKeyFile(@TempDir Path tempDir) throws IOException {
-        // Create a temporary key file for testing
+        // Create a temporary key file directly in tempDir (not in subdirectories)
         Path keyFile = tempDir.resolve("test-key.pem");
         String keyContent = "-----BEGIN RSA PRIVATE KEY-----\ntest-key-data\n-----END RSA PRIVATE KEY-----";
         Files.writeString(keyFile, keyContent);
@@ -87,7 +86,7 @@ class GitHubPropertiesValidationTest {
     @Test
     @DisplayName("Should prefer direct private key over file when both provided")
     void shouldPreferDirectKeyOverFile(@TempDir Path tempDir) throws IOException {
-        // Create a temporary key file
+        // Create a temporary key file directly in tempDir
         Path keyFile = tempDir.resolve("test-key.pem");
         Files.writeString(keyFile, "file-key-content");
 

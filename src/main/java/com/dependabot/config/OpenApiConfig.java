@@ -3,47 +3,42 @@ package com.dependabot.config;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.info.License;
-import io.swagger.v3.oas.models.servers.Server;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.List;
-
 /**
  * OpenAPI/Swagger configuration
- * Provides API documentation and interactive testing interface
+ * Configures API documentation accessible at /swagger-ui.html
  */
 @Configuration
+@EnableConfigurationProperties(ApiInfoProperties.class)
 public class OpenApiConfig {
 
-    @Value("${server.port:8081}")
-    private int serverPort;
+    private final ApiInfoProperties apiInfoProperties;
+
+    public OpenApiConfig(ApiInfoProperties apiInfoProperties) {
+        this.apiInfoProperties = apiInfoProperties;
+    }
 
     @Bean
-    public OpenAPI dependabotOpenAPI() {
-        Server localServer = new Server()
-                .url("http://localhost:" + serverPort)
-                .description("Local development server");
-
+    public OpenAPI customOpenAPI() {
         Contact contact = new Contact()
-                .name("Dependabot PR Service")
-                .email("your-email@example.com");
+                .name(apiInfoProperties.getContact().getName())
+                .email(apiInfoProperties.getContact().getEmail());
 
-        License mitLicense = new License()
-                .name("MIT License")
-                .url("https://opensource.org/licenses/MIT");
+        // Only set URL if provided
+        if (apiInfoProperties.getContact().getUrl() != null &&
+                !apiInfoProperties.getContact().getUrl().isEmpty()) {
+            contact.url(apiInfoProperties.getContact().getUrl());
+        }
 
         Info info = new Info()
-                .title("Dependabot PR Service API")
-                .version("1.0.0")
-                .description("REST API for managing and viewing Dependabot pull requests across GitHub repositories")
-                .contact(contact)
-                .license(mitLicense);
+                .title(apiInfoProperties.getTitle())
+                .version(apiInfoProperties.getVersion())
+                .description(apiInfoProperties.getDescription())
+                .contact(contact);
 
-        return new OpenAPI()
-                .info(info)
-                .servers(List.of(localServer));
+        return new OpenAPI().info(info);
     }
 }

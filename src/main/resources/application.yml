@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: ${SERVER_PORT:8081}
 
 spring:
   application:
@@ -14,9 +14,20 @@ spring:
 github:
   app-id: ${GITHUB_APP_ID}
   installation-id: ${GITHUB_INSTALLATION_ID}
-  private-key-file: ${GITHUB_PRIVATE_KEY_FILE}
+  private-key-file: ${GITHUB_PRIVATE_KEY_FILE:}
   owner: ${GITHUB_OWNER:derynLeigh}
   repos: ${GITHUB_REPOS:techronymsService,techronyms-user-service,dependabot-pr-summariser}
+
+# API Documentation Configuration
+api:
+  info:
+    title: ${API_TITLE:Dependabot PR Service}
+    description: ${API_DESCRIPTION:REST API for managing and summarizing Dependabot pull requests across repositories}
+    version: ${API_VERSION:1.0.0}
+    contact:
+      name: ${API_CONTACT_NAME:Dependabot PR Service}
+      email: ${API_CONTACT_EMAIL:support@example.com}
+      url: ${API_CONTACT_URL:}
 
 # Swagger/OpenAPI Configuration
 springdoc:
@@ -53,13 +64,3 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-
-# Actuator endpoints (optional, for production monitoring)
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: when-authorized

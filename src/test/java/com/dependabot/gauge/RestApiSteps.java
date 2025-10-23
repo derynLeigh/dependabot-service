@@ -163,20 +163,6 @@ public class RestApiSteps {
         }
     }
 
-    @Step("Store response time")
-    public void storeResponseTime() {
-        long startTime = System.currentTimeMillis();
-
-        // Make the same request again to measure time
-        String lastEndpoint = response.then().extract().response().getSessionId();
-        response = given().when().get("/api/prs/techronymsService");
-
-        long endTime = System.currentTimeMillis();
-
-        firstRequestTime = endTime - startTime;
-        log.debug("First request took: {}ms", firstRequestTime);
-    }
-
     @Step("Make GET request to <endpoint> again")
     public void makeGetRequestAgain(String endpoint) {
         log.debug("Making second GET request to: {}", endpoint);
@@ -196,26 +182,5 @@ public class RestApiSteps {
         secondRequestTime = endTime - startTime;
 
         log.debug("Second request took: {}ms", secondRequestTime);
-    }
-
-    @Step("Second request should be faster due to caching")
-    public void verifySecondRequestFaster() {
-        if (firstRequestTime == 0) {
-            log.warn("First request time not recorded, skipping comparison");
-            return;
-        }
-
-        log.debug("Comparing times: first={}ms, second={}ms",
-                firstRequestTime, secondRequestTime);
-
-        // With caching, second request should be reasonably fast
-        // We're lenient here because timing can vary
-        if (secondRequestTime < firstRequestTime * 0.8) {
-            log.debug("✓ Second request was {}ms faster (likely cached)",
-                    firstRequestTime - secondRequestTime);
-        } else {
-            log.debug("Second request time similar ({}ms vs {}ms)",
-                    secondRequestTime, firstRequestTime);
-        }
     }
 }

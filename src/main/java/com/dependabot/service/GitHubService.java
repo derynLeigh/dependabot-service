@@ -221,13 +221,20 @@ public class GitHubService {
     private boolean isDependabotPR(GHPullRequest pr) {
         try {
             GHUser author = pr.getUser();
+            if (author == null) {
+                return false;
+            }
+
             String login = author.getLogin();
+            if (login == null) {
+                return false;
+            }
 
             return DEPENDABOT_LOGIN.equalsIgnoreCase(login) ||
                     login.toLowerCase().contains(DEPENDABOT_APP);
 
-        } catch (Exception e) {  // Changed from IOException to Exception
-            log.warn("Error checking PR author", e);
+        } catch (NullPointerException e) {
+            log.warn("Null pointer checking PR author");
             return false;
         }
     }

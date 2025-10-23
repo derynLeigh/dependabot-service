@@ -1,6 +1,13 @@
+# .gitguardian.yaml
 version: 2
 
+# Ignore test resources
 paths-ignore:
-  - "**/*Test.java"           # Ignore all test files
-  - "**/test/**"              # Ignore test directories
-  - "src/test/**"             # Ignore src/test directory
+  - "src/test/resources/**"
+  - "**/*Test.java"
+  - "**/test/**/*.pem"
+
+# Explicit matches to ignore
+matches-ignore:
+  - name: Test RSA keys in test resources
+    match: "src/test/resources/test-github-key.pem"
