@@ -1,6 +1,29 @@
+# Test configuration
 github:
   app-id: test-app-id
   installation-id: test-installation-id
-  private-key: test-private-key
+  private-key-file: src/test/resources/test-github-key.pem
   owner: test-owner
   repos: test-repo1,test-repo2
+
+# Scheduler configuration for tests
+scheduler:
+  enabled: false  # Disabled by default in tests
+  cron: "0 0 * * * *"  # Every hour (won't run unless enabled)
+  max-retries: 3
+  retry-delay-ms: 100  # Short delay for faster tests
+
+# Cache configuration for tests
+cache:
+  ttl-ms: 60000  # 1 minute for tests
+
+# API info for tests
+api:
+  info:
+    title: Dependabot Test Service
+    description: Test API
+    version: 1.0.0-TEST
+    contact:
+      name: Test
+      email: test@example.com
+      url: http://test.example.com
