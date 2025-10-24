@@ -2,6 +2,7 @@ package com.dependabot;
 
 import com.dependabot.config.ApiInfoProperties;
 import com.dependabot.config.GitHubProperties;
+import com.dependabot.config.SchedulerProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -13,7 +14,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @EnableConfigurationProperties({
         GitHubProperties.class,
-        ApiInfoProperties.class
+        ApiInfoProperties.class,
+        SchedulerProperties.class
 })
 public class DependabotApplication {
 
