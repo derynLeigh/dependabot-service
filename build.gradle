@@ -70,6 +70,9 @@ dependencies {
     // AssertJ for fluent assertions
     testImplementation 'org.assertj:assertj-core:3.24.2'
 
+    // Hamcrest matcher framework
+    testImplementation 'org.hamcrest:hamcrest:3.0'
+
     // REST Assured for API testing
     testImplementation 'io.rest-assured:rest-assured:5.4.0'
     testImplementation 'io.rest-assured:json-path:5.4.0'
